@@ -28,6 +28,15 @@ spec:
       labels:
         app: redis
     spec:
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.35
+          command: ['sh', '-c', 'chown -R 999:999 /data && chmod -R 755 /data']
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          securityContext:
+            runAsUser: 0
       containers:
         - name: redis
           image: redis:7-alpine
@@ -44,6 +53,18 @@ spec:
             limits:
               memory: '256Mi'
               cpu: '200m'
+          command:
+            - redis-server
+            - --save
+            - '900 1'
+            - --save
+            - '300 10'
+            - --save
+            - '60 10000'
+            - --stop-writes-on-bgsave-error
+            - 'no'
+            - --dir
+            - '/data'
           livenessProbe:
             exec:
               command:
