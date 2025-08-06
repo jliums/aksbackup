@@ -204,12 +204,15 @@ For production deployment on Kubernetes:
 ```
 
 **Prerequisites for Kubernetes:**
+
 - `kubectl` installed and configured
 - Access to a Kubernetes cluster (local or cloud)
 - For local testing: kind, minikube, or Docker Desktop with Kubernetes
 
 **Access the application:**
+
 1. **Port Forward (recommended for testing):**
+
    ```bash
    ./deploy-k8s.sh port-forward
    # Then visit http://localhost:8080

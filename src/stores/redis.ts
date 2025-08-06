@@ -3,7 +3,8 @@ import { ref } from 'vue';
 import axios from 'axios';
 import type { RedisConnection, PingEntry, ApiResponse, RedisCommand } from '../types';
 
-const API_BASE = 'http://localhost:3001/api';
+// Use relative API base - works in both development and production
+const API_BASE = '/api';
 
 export const useRedisStore = defineStore('redis', () => {
   // State

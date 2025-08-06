@@ -11,10 +11,10 @@ metadata:
   name: redis-app-config
   namespace: redis-app
 data:
-  PORT: "3001"
-  REDIS_HOST: "redis-service"
-  REDIS_PORT: "6379"
-  REDIS_DB: "0"
+  PORT: '3001'
+  REDIS_HOST: 'redis-service'
+  REDIS_PORT: '6379'
+  REDIS_DB: '0'
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -34,47 +34,47 @@ spec:
         app: redis-app
     spec:
       containers:
-      - name: redis-app
-        image: redis-app:latest
-        ports:
-        - containerPort: 3001
-          name: http
-        envFrom:
-        - configMapRef:
-            name: redis-app-config
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1001
-          runAsGroup: 1001
-          capabilities:
-            drop:
-            - ALL
-          seccompProfile:
-            type: RuntimeDefault
+        - name: redis-app
+          image: redis-app:latest
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: redis-app-config
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
 ---
 apiVersion: v1
 kind: Service
@@ -86,10 +86,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 80
-    targetPort: 3001
-    protocol: TCP
-    name: http
+    - port: 80
+      targetPort: 3001
+      protocol: TCP
+      name: http
   selector:
     app: redis-app
 ---
@@ -100,18 +100,18 @@ metadata:
   namespace: redis-app
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'false'
 spec:
   ingressClassName: nginx
   rules:
-  - host: redis-app.local  # Change this to your domain
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: redis-app-service
-            port:
-              number: 80
+    - host: redis-app.local # Change this to your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redis-app-service
+                port:
+                  number: 80

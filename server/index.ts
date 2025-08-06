@@ -21,10 +21,10 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
+  res.status(200).json({
+    status: 'healthy',
     timestamp: new Date().toISOString(),
-    redisConnected: redisClient ? true : false
+    redisConnected: redisClient ? true : false,
   });
 });
 
@@ -168,7 +168,61 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// Auto-connect to Redis if environment variables are provided
+async function initializeRedis() {
+  const redisHost = process.env.REDIS_HOST;
+  const redisPort = process.env.REDIS_PORT;
+  const redisPassword = process.env.REDIS_PASSWORD;
+  const redisDB = process.env.REDIS_DB;
+
+  console.log('Environment variables:', { redisHost, redisPort, redisPassword, redisDB });
+
+  if (redisHost) {
+    // Don't reconnect if already connected
+    if (redisClient && redisClient.isOpen) {
+      console.log('Redis client already connected');
+      return;
+    }
+
+    try {
+      console.log(`Attempting to connect to Redis at ${redisHost}:${redisPort || 6379}`);
+
+      const clientOptions = {
+        socket: {
+          host: redisHost,
+          port: parseInt(redisPort || '6379'),
+        },
+        database: parseInt(redisDB || '0'),
+        ...(redisPassword && { password: redisPassword }),
+      };
+
+      redisClient = createClient(clientOptions);
+
+      redisClient.on('error', (err: Error) => {
+        console.error('Redis Client Error', err);
+      });
+
+      redisClient.on('connect', () => {
+        console.log('Connected to Redis successfully');
+      });
+
+      redisClient.on('ready', () => {
+        console.log('Redis client ready');
+      });
+
+      await redisClient.connect();
+      console.log('Redis auto-connection successful');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to auto-connect to Redis:', errorMessage);
+    }
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Frontend available at http://localhost:${PORT}`);
+
+  // Initialize Redis connection
+  initializeRedis().catch(console.error);
 });
