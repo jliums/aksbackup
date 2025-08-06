@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Redis App
 # Stage 1: Build the frontend
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -9,19 +9,31 @@ COPY package*.json ./
 COPY quasar.config.ts ./
 COPY tsconfig.json ./
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy frontend source
+# Copy frontend source files needed by Quasar prepare
 COPY src/ ./src/
 COPY public/ ./public/
 COPY index.html ./
+COPY .env* ./
+COPY eslint.config.js ./
+
+# Copy server files for compilation
+COPY server/ ./server/
+
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm ci
+
+# Copy rest of config files
+COPY .prettierrc.json ./
+COPY postcss.config.js ./
+
+# Copy boot files
+COPY src/boot/ ./src/boot/
 
 # Build the frontend
 RUN npm run build
 
 # Stage 2: Build the backend and final image
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
@@ -33,15 +45,15 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 # Copy package files
-COPY package*.json ./
+COPY package.production.json ./package.json
 
-# Install production dependencies (including backend deps)
-RUN npm ci --only=production && npm cache clean --force
+# Install only runtime dependencies for backend (use npm install instead of ci for prod package)
+RUN npm install && npm cache clean --force
 
-# Copy backend source
+# Copy backend source and compile it
 COPY server/ ./server/
 
-# Copy built frontend from previous stage
+# Copy the built frontend from the build stage
 COPY --from=frontend-builder /app/dist/spa ./public
 
 # Create necessary directories and set permissions
@@ -61,5 +73,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "--loader", "ts-node/esm", "--no-warnings", "server/index.ts"]
+# Use TypeScript with ts-node
+CMD ["npm", "start"]
